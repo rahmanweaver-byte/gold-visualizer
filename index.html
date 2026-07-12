@@ -1,98 +1,98 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stream Visualizer Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #f3f4f6; }
-        body.overlay-mode, body.overlay-mode #view-studio, body.overlay-mode #visualizer-canvas { 
+        /* Force absolute transparency for the entire app container */
+        html, body { 
             background: transparent !important; 
-            background-color: transparent !important; 
+            margin: 0; 
+            padding: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            overflow: hidden; 
         }
-        body.overlay-mode header, body.overlay-mode #controls-sidebar, body.overlay-mode #status-badge, body.overlay-mode #hud-metrics { display: none !important; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 9999px; }
+
+        #visualizer-canvas { 
+            background: transparent !important; 
+            width: 100%; 
+            height: 100%; 
+            display: block; 
+        }
+
+        /* Overlay mode hides UI entirely */
+        body.overlay-mode #controls-sidebar, 
+        body.overlay-mode header { 
+            display: none !important; 
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden custom-scrollbar">
+<body>
 
-    <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between z-10 shrink-0">
+    <!-- Header / Sidebar visible only when NOT in overlay mode -->
+    <header class="bg-gray-900 border-b border-gray-800 px-6 py-4">
         <h1 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Stream Visualizer Suite</h1>
     </header>
 
-    <main class="flex-1 overflow-hidden relative">
-        <div id="view-studio" class="h-full flex flex-col md:flex-row">
-            <aside id="controls-sidebar" class="w-80 bg-gray-950 border-r border-gray-800 p-6 flex flex-col gap-4 shrink-0 overflow-y-auto">
-                <button id="btn-request-mic" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 rounded-xl text-sm transition">Connect Microphone</button>
-                
-                <div class="space-y-4">
-                    <label class="block text-xs text-gray-300">Bar Opacity</label>
-                    <input type="range" id="slider-opacity" min="0.10" max="1.00" step="0.05" value="1.00" class="w-full accent-purple-500" />
-                    
-                    <button id="btn-overlay-mode" class="w-full bg-gray-900 border border-purple-500/30 hover:bg-purple-900/20 text-purple-300 py-2 rounded-xl text-sm transition">Enter Overlay Mode</button>
-                </div>
-            </aside>
+    <div id="controls-sidebar" class="p-6 bg-gray-950 text-white w-80">
+        <label class="block text-sm mb-2">Bar Opacity</label>
+        <input type="range" id="slider-opacity" min="0.10" max="1.00" step="0.05" value="1.00" class="w-full mb-6 accent-purple-500" />
+        
+        <button id="btn-overlay-mode" class="w-full bg-purple-600 hover:bg-purple-500 py-2 rounded-xl text-sm transition">Enter Overlay Mode</button>
+    </div>
 
-            <div class="flex-1 bg-black relative">
-                <canvas id="visualizer-canvas" class="w-full h-full block"></canvas>
-            </div>
-        </div>
-    </main>
+    <canvas id="visualizer-canvas"></canvas>
 
     <script>
         const canvas = document.getElementById('visualizer-canvas');
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: true });
         const sliderOpacity = document.getElementById('slider-opacity');
         let barOpacity = 1.0;
 
         sliderOpacity.addEventListener('input', (e) => { barOpacity = parseFloat(e.target.value); });
 
         function resizeCanvas() {
-            canvas.width = canvas.clientWidth * window.devicePixelRatio;
-            canvas.height = canvas.clientHeight * window.devicePixelRatio;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
         function draw() {
-            requestAnimationFrame(draw);
-            const isOverlay = document.body.classList.contains('overlay-mode');
-            
-            // If overlay mode, clear background completely for transparency
-            if (isOverlay) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            } else {
-                ctx.fillStyle = 'rgba(11, 15, 25, 0.25)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
+            // ALWAYS clear the canvas fully (transparent)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw Gold Bars
             ctx.save();
             ctx.fillStyle = '#d4af37';
             ctx.globalAlpha = barOpacity;
             
-            // Simple visualizer bars simulation
-            for(let i = 0; i < 40; i++) {
-                const x = (canvas.width / 40) * i;
-                const h = (Math.random() * 200) + 50;
-                ctx.fillRect(x + 5, canvas.height - h, (canvas.width / 40) - 10, h);
+            const barCount = 40;
+            const barSpacing = canvas.width / barCount;
+            
+            for(let i = 0; i < barCount; i++) {
+                const x = barSpacing * i;
+                // Height based on a sine wave for smooth movement
+                const h = (Math.sin(Date.now() / 200 + i) * 100) + 120;
+                ctx.fillRect(x + 5, canvas.height - h, barSpacing - 10, h);
             }
             ctx.restore();
+            
+            requestAnimationFrame(draw);
         }
         draw();
 
         document.getElementById('btn-overlay-mode').addEventListener('click', () => {
             document.body.classList.add('overlay-mode');
-            window.location.hash = 'overlay';
         });
 
-        window.addEventListener('load', () => {
-            if (window.location.hash === '#overlay') document.body.classList.add('overlay-mode');
-        });
+        // Auto-trigger overlay if URL has #overlay
+        if (window.location.hash === '#overlay') {
+            document.body.classList.add('overlay-mode');
+        }
     </script>
 </body>
 </html>
