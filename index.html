@@ -277,6 +277,15 @@
                         </div>
                         <input type="range" id="slider-decay" min="0.75" max="0.98" step="0.03" value="0.88" class="w-full accent-purple-500 bg-gray-800 h-1.5 rounded-lg cursor-pointer" />
                     </div>
+
+                    <!-- Bar Opacity -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs">
+                            <label class="text-gray-300 font-medium">Bar Opacity</label>
+                            <span id="label-opacity" class="text-purple-400 font-bold">100%</span>
+                        </div>
+                        <input type="range" id="slider-opacity" min="0.10" max="1.00" step="0.05" value="1.00" class="w-full accent-purple-500 bg-gray-800 h-1.5 rounded-lg cursor-pointer" />
+                    </div>
                 </div>
 
                 <hr class="border-gray-900" />
@@ -372,10 +381,12 @@
         const sliderDensity = document.getElementById('slider-density');
         const sliderSens = document.getElementById('slider-sens');
         const sliderDecay = document.getElementById('slider-decay');
+        const sliderOpacity = document.getElementById('slider-opacity');
 
         const labelDensity = document.getElementById('label-density');
         const labelSens = document.getElementById('label-sens');
         const labelDecay = document.getElementById('label-decay');
+        const labelOpacity = document.getElementById('label-opacity');
 
         // Visualizer State Variables
         let audioContext = null;
@@ -392,6 +403,7 @@
         let density = parseInt(sliderDensity.value);
         let sensitivity = parseFloat(sliderSens.value);
         let decayCoef = parseFloat(sliderDecay.value);
+        let barOpacity = parseFloat(sliderOpacity.value);
         let styleMode = selectStyle.value;
         let colorPalette = selectColor.value;
 
@@ -437,6 +449,11 @@
             if (decayCoef < 0.8) speedText = "Fast Decay";
             if (decayCoef > 0.92) speedText = "Smooth Float";
             labelDecay.textContent = speedText;
+        });
+
+        sliderOpacity.addEventListener('input', (e) => {
+            barOpacity = parseFloat(e.target.value);
+            labelOpacity.textContent = `${Math.round(barOpacity * 100)}%`;
         });
 
         selectStyle.addEventListener('change', (e) => {
@@ -580,6 +597,7 @@
             ctx.save();
             ctx.shadowColor = palettes[colorPalette].glow;
             ctx.shadowBlur = 12;
+            ctx.globalAlpha = barOpacity; // Apply the custom transparency state
 
             if (styleMode === 'classic') {
                 drawClassic(w, h);
