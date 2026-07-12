@@ -28,15 +28,6 @@
         body.overlay-mode header { 
             display: none !important; 
         }
-
-        /* Permission Overlay */
-        #permission-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.7);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 100; color: white; cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -51,15 +42,7 @@
         <input type="range" id="slider-opacity" min="0.10" max="1.00" step="0.05" value="1.00" class="w-full mb-6 accent-purple-500" />
         
         <button id="btn-overlay-mode" class="w-full bg-purple-600 hover:bg-purple-500 py-2 rounded-xl text-sm transition">Enter Overlay Mode</button>
-    </div>
-
-    <!-- Permission Button Overlay -->
-    <div id="permission-overlay">
-        <div class="text-center p-8 bg-gray-900 border border-purple-500 rounded-2xl">
-            <h2 class="text-2xl font-bold mb-4">Initialize Visualizer</h2>
-            <p class="mb-6 opacity-80">Click anywhere to connect audio & start</p>
-            <button class="bg-purple-600 px-8 py-3 rounded-full font-bold">ACTIVATE AUDIO</button>
-        </div>
+        <p class="text-[10px] text-gray-500 mt-4 italic">Refresh the page to exit Overlay Mode</p>
     </div>
 
     <canvas id="visualizer-canvas"></canvas>
@@ -67,30 +50,23 @@
     <script>
         const canvas = document.getElementById('visualizer-canvas');
         const ctx = canvas.getContext('2d', { alpha: true });
-        const overlay = document.getElementById('permission-overlay');
         let audioCtx, analyser, dataArray, source;
 
-        // Permission Handlers
-        overlay.addEventListener('click', async () => {
+        // Auto-connect audio on load
+        window.addEventListener('load', async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                initAudio(stream);
-                overlay.style.display = 'none';
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                draw();
             } catch (err) {
-                console.error("Audio access denied:", err);
-                alert("Please grant microphone permission for the bars to bounce.");
+                console.error("Audio access denied or unavailable:", err);
             }
         });
-
-        function initAudio(stream) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioCtx.createAnalyser();
-            source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
-            analyser.fftSize = 256;
-            dataArray = new Uint8Array(analyser.frequencyBinCount);
-            draw();
-        }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
